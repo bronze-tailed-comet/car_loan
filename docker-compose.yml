@@ -29,6 +29,16 @@ x-airflow-common:
       
 services:
 
+  api:
+    build: .
+    command: bash -c 'uvicorn app.main:app --host 0.0.0.0'
+    volumes:
+      - .:/app
+    ports:
+      - 8008:8000
+    env_file:
+      - .env
+      
   postgres:
     image: postgres:13
     environment:
