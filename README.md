@@ -42,7 +42,11 @@ sudo docker exec -it <container id> psql --username=<username>
 select count(*) from car_loan_train ;
 
 ```
+To run the tests:
+```
+sudo docker exec <container id> pytest
 
+```
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

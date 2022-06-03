@@ -3,6 +3,7 @@ import numpy as np
 import joblib
 from sqlalchemy import create_engine
 import json
+from os.path import exists
 
 import dags.utils.ml_pipeline_config as config
 
@@ -22,7 +23,15 @@ def load_to_sql(X, features):
     
     engine = create_engine(db_engine)
     
-    X.to_sql('car_loan_serving', engine, schema=db_schema, if_exists='append', index=False)
+    try:
+        X.to_sql('car_loan_serving', engine, schema=db_schema, if_exists='append', index=False)
+        resp = 1
+        print("SQL OK")
+    except Exception as e:
+        print("error SQL",e)
+        resp = e
+        
+    return resp
     
 
 def predict(X):
@@ -42,10 +51,36 @@ def predict(X):
 
     X = pd.DataFrame( X, index=[0] )
     
-    model = joblib.load('models/model.pkl')
-    X['pred'] = model.predict( X[features] )
-    X['pred_proba'] = model.predict_proba( X[features] )[:, 1]
+    model_path = 'models/model.pkl'
     
-    load_to_sql(X, features)
-
-    return np.round(X['pred_proba'].iloc[0],3)
+    if exists(model_path):
+        
+        model = joblib.load('models/model.pkl')
+        X['pred'] = model.predict( X[features] )
+        X['pred_proba'] = model.predict_proba( X[features] )[:, 1]
+        
+        print("model found")
+        
+    else:
+        
+        return {
+                'status':'500',
+                'response': {'message':'Model does not exist'}
+        }
+    
+        
+    resp_sql = load_to_sql(X, features)
+        
+    if(resp_sql == 1):
+            
+        return {
+            'status':'200',
+            'response': {'pred':np.round(X['pred_proba'].iloc[0],3),'message':'success'}
+        }
+        
+    else:
+            
+        return {
+            'status':'503',
+            'response': {'pred':np.round(X['pred_proba'].iloc[0],3), 'message':'Something went wrong with the database'}
+        }

@@ -3,6 +3,7 @@ import secrets
 from pydantic import BaseModel
 from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.encoders import jsonable_encoder
 
 from app.predict import predict
 
@@ -40,9 +41,6 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials.username
 
 @app.post("/car_loan")
-async def getInformation(data : Request, username: str = Depends(get_current_username)):
-    req_info = await data.json()
-    return {
-        "status" : "200",
-        "proba" : predict(req_info)
-    }
+async def getInformation(data: CarLoanData, username: str = Depends(get_current_username)):
+
+    return predict(jsonable_encoder(data))
